@@ -11,4 +11,7 @@
 #define ARGV_TIME_TO_SLEEP 4
 #define ARGV_EATING_TIME_QUOTA 5
 
+#define MICRO_TO_MILLI 1000
+#define SEC_TO_MILLI 1000
+
 #endif
