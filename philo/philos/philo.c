@@ -15,6 +15,7 @@ void init_common_info(t_common_info *info, char **argv)
     else
         info->quota = LLONG_MAX;
     pthread_mutex_init(&info->mutex, NULL);
+	gettimeofday(&info->start, NULL);
     info->forks = calloc(info->num_philos, sizeof(int));
 }
 
@@ -52,7 +53,6 @@ void philo_act(t_philo_info *ph_info)
     }
 }
 
-
 void dining_philos(char **argv)
 {
     t_common_info common_info;
@@ -62,8 +62,9 @@ void dining_philos(char **argv)
 
     threads = malloc(common_info.num_philos * sizeof(pthread_t));
     init_common_info(&common_info, argv);
-    if (!common_info.forks)
-        return;
+	ph_infos = malloc(common_info.num_philos * sizeof(t_philo_info));
+	if (!ph_infos)
+		printf("hi\n");
     id = -1;
     while (++id < common_info.num_philos)
     {
@@ -88,6 +89,7 @@ void dining_philos(char **argv)
             ph_infos->first_fork = right_fork;
             ph_infos->second_fork = left_fork;
         }
+		while (1)
         pthread_create(threads + id, NULL, philo_act, ph_infos + id);
     }
     while (--id >= 0)
