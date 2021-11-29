@@ -18,6 +18,41 @@ void init_common_info(t_common_info *info, char **argv)
     info->forks = calloc(info->num_philos, sizeof(int));
 }
 
+void philo_act(t_philo_info *ph_info)
+{
+    struct timeval last_eating;
+    struct timeval now;
+    int printed_thinking;
+
+    gettimeofday(&last_eating, NULL);
+    printed_thinking = FALSE;
+    while ((long long)ph_info->accumulated < ph_info->common->quota)
+    {
+        if (has_eaten_spaghetti(ph_info))
+        {
+            gettimeofday(&last_eating, NULL);
+            printf("%dms %d is sleeping\n",
+                   get_timestamp(&ph_info->common->start),
+                   ph_info->id);
+            usleep(MICRO_TO_MILLI * ph_info->common->time_to_sleep);
+            printed_thinking = FALSE;
+        }
+        if (!printed_thinking)
+        {
+            printf("%dms %d is thinking\n",
+                   get_timestamp(&ph_info->common->start),
+                   ph_info->id);
+            printed_thinking = TRUE;
+        }
+        gettimeofday(&now, NULL);
+        if (get_diff_millisec(&last_eating, &now) >= ph_info->common->time_to_die)
+            printf("%dms %d is thinking\n",
+                   get_diff_millisec(&ph_info->common->start, &now),
+                   ph_info->id);
+    }
+}
+
+
 void dining_philos(char **argv)
 {
     t_common_info common_info;
@@ -53,7 +88,6 @@ void dining_philos(char **argv)
             ph_infos->first_fork = right_fork;
             ph_infos->second_fork = left_fork;
         }
-
         pthread_create(threads + id, NULL, philo_act, ph_infos + id);
     }
     while (--id >= 0)
@@ -61,40 +95,6 @@ void dining_philos(char **argv)
     free(ph_infos);
     free(threads);
     //free , destroy common info
-}
-
-void philo_act(t_philo_info *ph_info)
-{
-    struct timeval last_eating;
-    struct timeval now;
-    int printed_thinking;
-
-    gettimeofday(&last_eating, NULL);
-    printed_thinking = FALSE;
-    while ((long long)ph_info->accumulated < ph_info->common->quota)
-    {
-        if (has_eaten_spaghetti(ph_info))
-        {
-            gettimeofday(&last_eating, NULL);
-            printf("%dms %d is sleeping\n",
-                   get_timestamp(&ph_info->common->start),
-                   ph_info->id);
-            usleep(MICRO_TO_MILLI * ph_info->common->time_to_sleep);
-            printed_thinking = FALSE;
-        }
-        if (!printed_thinking)
-        {
-            printf("%dms %d is thinking\n",
-                   get_timestamp(&ph_info->common->start),
-                   ph_info->id);
-            printed_thinking = TRUE;
-        }
-        gettimeofday(&now, NULL);
-        if (get_diff_millisec(&last_eating, &now) >= ph_info->common->time_to_die)
-            printf("%dms %d is thinking\n",
-                   get_diff_millisec(&ph_info->common->start, &now),
-                   ph_info->id);
-    }
 }
 
 int has_picked_fork(t_philo_info *info, int fork_index)
@@ -105,9 +105,9 @@ int has_picked_fork(t_philo_info *info, int fork_index)
     pthread_mutex_lock(&info->common->mutex);
     if (info->common->forks[fork_index] == FORK_NOT_USING)
     {
-        info->common->forks[fork_index] == FORK_USING;
+        info->common->forks[fork_index] = FORK_USING;
         gettimeofday(&now, NULL);
-        printf("%dms %d has taken a fork\n", get_timestamp(&info->common->start));
+        printf("%dms %d has taken a fork\n", get_timestamp(&info->common->start), info->id);
         has_picked = TRUE;
     }
     else
@@ -150,18 +150,3 @@ int has_eaten_spaghetti(t_philo_info *ph_info)
 
     return has_eaten;
 }
-
-// void sleep_and_think_or_die(int time_to_die,
-//                             int time_to_sleep)
-// {
-//     struct timeval last_eating;
-
-//     gettimeofday(&last_eating, NULL);
-//     //sleep, printf
-//     usleep(MICRO_TO_MILLI * time_to_sleep);
-//     while ()
-//     //think, how to implement?
-//     // if (bigger than time_to_die)
-//     //     free all;pthread detach;
-//     //else return ;
-// }

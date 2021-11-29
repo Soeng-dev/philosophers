@@ -8,6 +8,7 @@
 
 
 int ft_strcmp(char *s1, char *s2);
+int ft_strlen(char *str);
 int compare_strnum(char *strnum1, char *sign, char *strnum2);
 int ft_atoi(const char *str);
 int get_timestamp(struct timeval *start);
