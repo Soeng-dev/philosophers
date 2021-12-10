@@ -40,6 +40,7 @@ typedef struct s_philo_info
 void dining_philos(char **arg);
 void init_common_info(t_common_info *info, char **argv);
 void philo_act(t_philo_info *ph_info);
+int has_eaten_spaghetti(t_philo_info *ph_info);
 int has_picked_fork(t_philo_info *info, int fork_index);
 void drop_fork(t_common_info *info, int fork_index);
 

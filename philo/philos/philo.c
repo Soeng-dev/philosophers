@@ -42,7 +42,7 @@ void dining_philos(char **argv)
     while (--id >= 0)
     {
         if (ph_infos[id].is_undetached)
-            pthread_join(&common_info.ph_treads[id], NULL);
+            pthread_join(common_info.ph_treads[id], NULL);
     }
     free(ph_infos);
     //free , destroy common info
