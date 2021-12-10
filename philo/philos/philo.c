@@ -89,7 +89,6 @@ void dining_philos(char **argv)
             ph_infos->first_fork = right_fork;
             ph_infos->second_fork = left_fork;
         }
-		while (1)
         pthread_create(threads + id, NULL, philo_act, ph_infos + id);
     }
     while (--id >= 0)
