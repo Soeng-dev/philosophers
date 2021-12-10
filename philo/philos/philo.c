@@ -10,12 +10,12 @@ void init_common_info(t_common_info *info, char **argv)
     info->time_to_eat = ft_atoi(argv[ARGV_TIME_TO_EAT]);
     info->time_to_sleep = ft_atoi(argv[ARGV_TIME_TO_SLEEP]);
     info->num_philos = ft_atoi(argv[ARGV_NUM_PHILOS]);
-    if (argv[ARGV_EATING_TIME_QUOTA])
-        info->quota = ft_atoi(argv[ARGV_EATING_TIME_QUOTA]);
+    if (argv[ARGV_EATING_TIMES_QUOTA])
+        info->quota = ft_atoi(argv[ARGV_EATING_TIMES_QUOTA]);
     else
         info->quota = LLONG_MAX;
     pthread_mutex_init(&info->mutex, NULL);
-	gettimeofday(&info->start, NULL);
+    gettimeofday(&info->start, NULL);
     info->forks = calloc(info->num_philos, sizeof(int));
 }
 
@@ -35,21 +35,30 @@ void philo_act(t_philo_info *ph_info)
             printf("%dms %d is sleeping\n",
                    get_timestamp(&ph_info->common->start),
                    ph_info->id);
-            usleep(MICRO_TO_MILLI * ph_info->common->time_to_sleep);
+            usleep(MILLI_TO_MICRO * ph_info->common->time_to_sleep);
             printed_thinking = FALSE;
         }
-        if (!printed_thinking)
+        else
         {
-            printf("%dms %d is thinking\n",
-                   get_timestamp(&ph_info->common->start),
-                   ph_info->id);
-            printed_thinking = TRUE;
+        //seperate here to a function think_until die
+            if (!printed_thinking)
+            {
+                printf("%dms %d is thinking\n",
+                       get_timestamp(&ph_info->common->start),
+                       ph_info->id);
+                printed_thinking = TRUE;
+            }
+            else
+            {
+                gettimeofday(&now, NULL);
+                if (get_diff_millisec(&last_eating, &now) >= ph_info->common->time_to_die)
+                {
+                    printf("%dms %d died\n",
+                           get_diff_millisec(&ph_info->common->start, &now),
+                           ph_info->id);
+                }
+            }
         }
-        gettimeofday(&now, NULL);
-        if (get_diff_millisec(&last_eating, &now) >= ph_info->common->time_to_die)
-            printf("%dms %d is thinking\n",
-                   get_diff_millisec(&ph_info->common->start, &now),
-                   ph_info->id);
     }
 }
 
@@ -62,9 +71,9 @@ void dining_philos(char **argv)
 
     threads = malloc(common_info.num_philos * sizeof(pthread_t));
     init_common_info(&common_info, argv);
-	ph_infos = malloc(common_info.num_philos * sizeof(t_philo_info));
-	if (!ph_infos)
-		printf("hi\n");
+    ph_infos = malloc(common_info.num_philos * sizeof(t_philo_info));
+    if (!ph_infos)
+        printf("hi\n");
     id = -1;
     while (++id < common_info.num_philos)
     {
@@ -139,7 +148,7 @@ int has_eaten_spaghetti(t_philo_info *ph_info)
             printf("%dms %d is eating\n",
                    get_timestamp(&ph_info->common->start),
                    ph_info->id);
-            usleep(ph_info->common->time_to_eat / MICRO_TO_MILLI);
+            usleep(ph_info->common->time_to_eat * MILLI_TO_MICRO);
             ph_info->accumulated += ph_info->common->time_to_eat;
             has_eaten = TRUE;
             drop_fork(ph_info->common,
