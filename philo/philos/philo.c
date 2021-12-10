@@ -1,8 +1,52 @@
 
-
 #include "philo.h"
 
 /* index of left fork is same with id of philosopher */
+
+void dining_philos(char **argv)
+{
+    t_common_info common_info;
+    t_philo_info *ph_infos;
+    int id;
+
+    init_common_info(&common_info, argv);
+    ph_infos = malloc(common_info.num_philos * sizeof(t_philo_info));
+    if (!ph_infos)
+        printf("hi\n");
+    id = -1;
+    while (++id < common_info.num_philos)
+    {
+        // init ph_info
+        ph_infos[id].common = &common_info;
+        ph_infos[id].id = id;
+        ph_infos[id].accumulated = 0;
+        int left_fork = id;
+        int right_fork;
+
+        if (id == common_info.num_philos - 1)
+            right_fork = 0;
+        else
+            right_fork = id + 1;
+        if (id % 2)
+        {
+            ph_infos->first_fork = left_fork;
+            ph_infos->second_fork = right_fork;
+        }
+        else
+        {
+            ph_infos->first_fork = right_fork;
+            ph_infos->second_fork = left_fork;
+        }
+        pthread_create(&common_info.ph_treads[id], NULL, philo_act, ph_infos + id);
+    }
+    while (--id >= 0)
+    {
+        if (ph_infos[id].is_undetached)
+            pthread_join(&common_info.ph_treads[id], NULL);
+    }
+    free(ph_infos);
+    //free , destroy common info
+}
 
 void init_common_info(t_common_info *info, char **argv)
 {
@@ -65,77 +109,6 @@ void philo_act(t_philo_info *ph_info)
     }
 }
 
-void dining_philos(char **argv)
-{
-    t_common_info common_info;
-    t_philo_info *ph_infos;
-    int id;
-
-    init_common_info(&common_info, argv);
-    ph_infos = malloc(common_info.num_philos * sizeof(t_philo_info));
-    if (!ph_infos)
-        printf("hi\n");
-    id = -1;
-    while (++id < common_info.num_philos)
-    {
-        // init ph_info
-        ph_infos[id].common = &common_info;
-        ph_infos[id].id = id;
-        ph_infos[id].accumulated = 0;
-        int left_fork = id;
-        int right_fork;
-
-        if (id == common_info.num_philos - 1)
-            right_fork = 0;
-        else
-            right_fork = id + 1;
-        if (id % 2)
-        {
-            ph_infos->first_fork = left_fork;
-            ph_infos->second_fork = right_fork;
-        }
-        else
-        {
-            ph_infos->first_fork = right_fork;
-            ph_infos->second_fork = left_fork;
-        }
-        pthread_create(&common_info.ph_treads[id], NULL, philo_act, ph_infos + id);
-    }
-    while (--id >= 0)
-    {
-        if (ph_infos[id].is_undetached)
-            pthread_join(&common_info.ph_treads[id], NULL);
-    }
-    free(ph_infos);
-    //free , destroy common info
-}
-
-int has_picked_fork(t_philo_info *info, int fork_index)
-{
-    int has_picked;
-    struct timeval now;
-
-    pthread_mutex_lock(&info->common->mutex);
-    if (info->common->forks[fork_index] == FORK_NOT_USING)
-    {
-        info->common->forks[fork_index] = FORK_USING;
-        gettimeofday(&now, NULL);
-        printf("%dms %d has taken a fork\n", get_timestamp(&info->common->start), info->id);
-        has_picked = TRUE;
-    }
-    else
-        has_picked = FALSE;
-    pthread_mutex_unlock(&info->common->mutex);
-    return has_picked;
-}
-
-void drop_fork(t_common_info *info, int fork_index)
-{
-    pthread_mutex_lock(&info->mutex);
-    info->forks[fork_index] = FORK_NOT_USING;
-    pthread_mutex_unlock(&info->mutex);
-}
-
 int has_eaten_spaghetti(t_philo_info *ph_info)
 {
     struct timeval now;
@@ -162,4 +135,30 @@ int has_eaten_spaghetti(t_philo_info *ph_info)
     }
 
     return has_eaten;
+}
+
+int has_picked_fork(t_philo_info *info, int fork_index)
+{
+    int has_picked;
+    struct timeval now;
+
+    pthread_mutex_lock(&info->common->mutex);
+    if (info->common->forks[fork_index] == FORK_NOT_USING)
+    {
+        info->common->forks[fork_index] = FORK_USING;
+        gettimeofday(&now, NULL);
+        printf("%dms %d has taken a fork\n", get_timestamp(&info->common->start), info->id);
+        has_picked = TRUE;
+    }
+    else
+        has_picked = FALSE;
+    pthread_mutex_unlock(&info->common->mutex);
+    return has_picked;
+}
+
+void drop_fork(t_common_info *info, int fork_index)
+{
+    pthread_mutex_lock(&info->mutex);
+    info->forks[fork_index] = FORK_NOT_USING;
+    pthread_mutex_unlock(&info->mutex);
 }
