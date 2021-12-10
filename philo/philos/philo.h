@@ -20,6 +20,7 @@ typedef struct s_common_info
     int time_to_eat;
     int time_to_sleep;
     int num_philos;
+    pthread_t *ph_treads;
     long long quota;
     int *forks;
     struct timeval start;
@@ -30,7 +31,7 @@ typedef struct s_philo_info
 {
     t_common_info *common;
     int id;
-    // int is_undetached;
+    int is_undetached;
     int accumulated;
     int first_fork;
     int second_fork;

@@ -10,6 +10,7 @@ void init_common_info(t_common_info *info, char **argv)
     info->time_to_eat = ft_atoi(argv[ARGV_TIME_TO_EAT]);
     info->time_to_sleep = ft_atoi(argv[ARGV_TIME_TO_SLEEP]);
     info->num_philos = ft_atoi(argv[ARGV_NUM_PHILOS]);
+    info->ph_treads = malloc(sizeof(pthread_t) * info->num_philos);
     if (argv[ARGV_EATING_TIMES_QUOTA])
         info->quota = ft_atoi(argv[ARGV_EATING_TIMES_QUOTA]);
     else
@@ -56,6 +57,8 @@ void philo_act(t_philo_info *ph_info)
                     printf("%dms %d died\n",
                            get_diff_millisec(&ph_info->common->start, &now),
                            ph_info->id);
+                    ph_info->is_undetached = FALSE;
+                    pthread_detach(ph_info->common->ph_treads[ph_info->id]);
                 }
             }
         }
@@ -66,10 +69,8 @@ void dining_philos(char **argv)
 {
     t_common_info common_info;
     t_philo_info *ph_infos;
-    pthread_t *threads;
     int id;
 
-    threads = malloc(common_info.num_philos * sizeof(pthread_t));
     init_common_info(&common_info, argv);
     ph_infos = malloc(common_info.num_philos * sizeof(t_philo_info));
     if (!ph_infos)
@@ -98,12 +99,14 @@ void dining_philos(char **argv)
             ph_infos->first_fork = right_fork;
             ph_infos->second_fork = left_fork;
         }
-        pthread_create(threads + id, NULL, philo_act, ph_infos + id);
+        pthread_create(&common_info.ph_treads[id], NULL, philo_act, ph_infos + id);
     }
     while (--id >= 0)
-        pthread_join(threads[id], NULL);
+    {
+        if (ph_infos[id].is_undetached)
+            pthread_join(&common_info.ph_treads[id], NULL);
+    }
     free(ph_infos);
-    free(threads);
     //free , destroy common info
 }
 
