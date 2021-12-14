@@ -50,18 +50,23 @@ void dining_philos(char **argv)
 
 void init_common_info(t_common_info *info, char **argv)
 {
+    int i;
+
     info->time_to_die = ft_atoi(argv[ARGV_TIME_TO_DIE]);
     info->time_to_eat = ft_atoi(argv[ARGV_TIME_TO_EAT]);
     info->time_to_sleep = ft_atoi(argv[ARGV_TIME_TO_SLEEP]);
     info->num_philos = ft_atoi(argv[ARGV_NUM_PHILOS]);
     info->ph_treads = malloc(sizeof(pthread_t) * info->num_philos);
+    pthread_mutex_init(&info->thread_work, NULL); 
     if (argv[ARGV_EATING_TIMES_QUOTA])
         info->quota = ft_atoi(argv[ARGV_EATING_TIMES_QUOTA]);
     else
         info->quota = LLONG_MAX;
-    pthread_mutex_init(&info->mutex, NULL);
     gettimeofday(&info->start, NULL);
-    info->forks = calloc(info->num_philos, sizeof(int));
+    info->forks = malloc(info->num_philos * sizeof(int));
+    i = -1;
+    while (++i < info->num_philos)
+        pthread_mutex_init(&info->forks[i], NULL);
 }
 
 void philo_act(t_philo_info *ph_info)
@@ -74,91 +79,56 @@ void philo_act(t_philo_info *ph_info)
     printed_thinking = FALSE;
     while ((long long)ph_info->accumulated < ph_info->common->quota)
     {
-        if (has_eaten_spaghetti(ph_info))
+        pthread_mutex_lock(&ph_info->common->thread_work);
+        eat_spaghetti(ph_info);
+        gettimeofday(&last_eating, NULL);
+        printf("%dms %d is sleeping\n",
+               get_timestamp(&ph_info->common->start),
+               ph_info->id);
+        usleep(MILLI_TO_MICRO * ph_info->common->time_to_sleep);
+        printed_thinking = FALSE;
+        //seperate here to a function think_until die
+        if (!printed_thinking)
         {
-            gettimeofday(&last_eating, NULL);
-            printf("%dms %d is sleeping\n",
+            printf("%dms %d is thinking\n",
                    get_timestamp(&ph_info->common->start),
                    ph_info->id);
-            usleep(MILLI_TO_MICRO * ph_info->common->time_to_sleep);
-            printed_thinking = FALSE;
+            printed_thinking = TRUE;
         }
         else
         {
-        //seperate here to a function think_until die
-            if (!printed_thinking)
+            gettimeofday(&now, NULL);
+            if (get_diff_millisec(&last_eating, &now) >= ph_info->common->time_to_die)
             {
-                printf("%dms %d is thinking\n",
-                       get_timestamp(&ph_info->common->start),
+                printf("%dms %d died\n",
+                       get_diff_millisec(&ph_info->common->start, &now),
                        ph_info->id);
-                printed_thinking = TRUE;
-            }
-            else
-            {
-                gettimeofday(&now, NULL);
-                if (get_diff_millisec(&last_eating, &now) >= ph_info->common->time_to_die)
-                {
-                    printf("%dms %d died\n",
-                           get_diff_millisec(&ph_info->common->start, &now),
-                           ph_info->id);
-                    ph_info->is_undetached = FALSE;
-                    pthread_detach(ph_info->common->ph_treads[ph_info->id]);
-                }
+                ph_info->is_undetached = FALSE;
+                pthread_detach(ph_info->common->ph_treads[ph_info->id]);
             }
         }
     }
 }
 
-int has_eaten_spaghetti(t_philo_info *ph_info)
+void eat_spaghetti(t_philo_info *ph_info)
 {
     struct timeval now;
-    int has_eaten;
+    pthread_t *forks;
 
-    has_eaten = FALSE;
-    if (has_picked_fork(ph_info,
-                        ph_info->first_fork))
-    {
-        if (has_picked_fork(ph_info,
-                            ph_info->second_fork))
-        {
-            printf("%dms %d is eating\n",
-                   get_timestamp(&ph_info->common->start),
-                   ph_info->id);
-            usleep(ph_info->common->time_to_eat * MILLI_TO_MICRO);
-            ph_info->accumulated += ph_info->common->time_to_eat;
-            has_eaten = TRUE;
-            drop_fork(ph_info->common,
-                      ph_info->second_fork);
-        }
-        drop_fork(ph_info->common,
-                  ph_info->first_fork);
-    }
-
-    return has_eaten;
-}
-
-int has_picked_fork(t_philo_info *info, int fork_index)
-{
-    int has_picked;
-    struct timeval now;
-
-    pthread_mutex_lock(&info->common->mutex);
-    if (info->common->forks[fork_index] == FORK_NOT_USING)
-    {
-        info->common->forks[fork_index] = FORK_USING;
-        gettimeofday(&now, NULL);
-        printf("%dms %d has taken a fork\n", get_timestamp(&info->common->start), info->id);
-        has_picked = TRUE;
-    }
-    else
-        has_picked = FALSE;
-    pthread_mutex_unlock(&info->common->mutex);
-    return has_picked;
-}
-
-void drop_fork(t_common_info *info, int fork_index)
-{
-    pthread_mutex_lock(&info->mutex);
-    info->forks[fork_index] = FORK_NOT_USING;
-    pthread_mutex_unlock(&info->mutex);
+    forks = ph_info->common->forks;
+    pthread_mutex_lock(forks[ph_info->first_fork]);
+    printf("%dms %d has taken a fork\n",
+           get_timestamp(&ph_info->common->start),
+           ph_info->id);
+    pthread_mutex_lock(forks[ph_info->second_fork]);
+    printf("%dms %d has taken a fork\n",
+           get_timestamp(&ph_info->common->start),
+           ph_info->id);
+    printf("%dms %d is eating\n",
+           get_timestamp(&ph_info->common->start),
+           ph_info->id);
+    usleep(ph_info->common->time_to_eat * MILLI_TO_MICRO);
+    pthread_mutex_lock(forks[ph_info->first_fork]);
+    pthread_mutex_lock(forks[ph_info->second_fork]);
+    ++ph_info->accumulated;
 }

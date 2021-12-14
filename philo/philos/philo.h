@@ -22,9 +22,9 @@ typedef struct s_common_info
     int num_philos;
     pthread_t *ph_treads;
     long long quota;
-    int *forks;
+    pthread_mutex_t *forks;
+    pthread_mutex_t thread_work;
     struct timeval start;
-    pthread_mutex_t mutex;
 } t_common_info;
 
 typedef struct s_philo_info
@@ -40,7 +40,7 @@ typedef struct s_philo_info
 void dining_philos(char **arg);
 void init_common_info(t_common_info *info, char **argv);
 void philo_act(t_philo_info *ph_info);
-int has_eaten_spaghetti(t_philo_info *ph_info);
+void eat_spaghetti(t_philo_info *ph_info);
 int has_picked_fork(t_philo_info *info, int fork_index);
 void drop_fork(t_common_info *info, int fork_index);
 
