@@ -23,7 +23,7 @@ typedef struct s_common_info
     pthread_t *ph_treads;
     long long quota;
     pthread_mutex_t *forks;
-    pthread_mutex_t thread_work;
+    // pthread_mutex_t thread_work;
     struct timeval start;
 } t_common_info;
 

@@ -57,7 +57,6 @@ void init_common_info(t_common_info *info, char **argv)
     info->time_to_sleep = ft_atoi(argv[ARGV_TIME_TO_SLEEP]);
     info->num_philos = ft_atoi(argv[ARGV_NUM_PHILOS]);
     info->ph_treads = malloc(sizeof(pthread_t) * info->num_philos);
-    pthread_mutex_init(&info->thread_work, NULL); 
     if (argv[ARGV_EATING_TIMES_QUOTA])
         info->quota = ft_atoi(argv[ARGV_EATING_TIMES_QUOTA]);
     else
@@ -79,13 +78,14 @@ void philo_act(t_philo_info *ph_info)
     printed_thinking = FALSE;
     while ((long long)ph_info->accumulated < ph_info->common->quota)
     {
-        pthread_mutex_lock(&ph_info->common->thread_work);
         eat_spaghetti(ph_info);
         gettimeofday(&last_eating, NULL);
+        
         printf("%dms %d is sleeping\n",
                get_timestamp(&ph_info->common->start),
                ph_info->id);
         usleep(MILLI_TO_MICRO * ph_info->common->time_to_sleep);
+
         printed_thinking = FALSE;
         //seperate here to a function think_until die
         if (!printed_thinking)
@@ -128,7 +128,7 @@ void eat_spaghetti(t_philo_info *ph_info)
            get_timestamp(&ph_info->common->start),
            ph_info->id);
     usleep(ph_info->common->time_to_eat * MILLI_TO_MICRO);
-    pthread_mutex_lock(forks[ph_info->first_fork]);
-    pthread_mutex_lock(forks[ph_info->second_fork]);
+    pthread_mutex_unlock(forks[ph_info->first_fork]);
+    pthread_mutex_unlock(forks[ph_info->second_fork]);
     ++ph_info->accumulated;
 }
